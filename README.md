@@ -3,7 +3,7 @@ slib (silly lib)
 
 This project is all about poking SoCs without a vendor SDK.
 
-A blog article relating to the project will be released shortly.
+A blog article relating to the project will be released in a few days ( https://lowerstrata.net )
 
 NOTE: The code is horrific! It certainly does not demonstrate best conventions.
       The humble objective is to progressively make it better by introducing
