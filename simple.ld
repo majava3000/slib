@@ -22,7 +22,8 @@ SECTIONS {
        this contains the cortex common table and the SP setup */
     KEEP(crt0.o (vectors));
     /* Then place the secondary source for vectors if any (so that they
-       come after the primary vectors). On cortex this is chip specific */
+       come after the primary vectors). On cortex this is chip specific.
+       This is still untested */
     KEEP(* (vectors));
   } > VECTORS
 
@@ -57,4 +58,8 @@ SECTIONS {
     * (.bss .bss.*);
     __bss_end = .;
   }
+
+  /**
+   * TODO: Make main stack reservation to guard against over-commit
+   */
 }
