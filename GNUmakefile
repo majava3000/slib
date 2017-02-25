@@ -85,7 +85,7 @@ GENERIC_MKHEX = $(OBJCOPY) -O $(patsubst .%,%,$(suffix $@)) $< $@ && chmod -x $@
 all: $(targets)
 .PHONY: all
 
-$(targets): Makefile
+$(targets): GNUmakefile
 
 # We can reuse these both, just. Both have cmopatible FTPROT sections and
 # minimal vector area. init0.o must come before crt0.o. Otherwise linker will
