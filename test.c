@@ -40,11 +40,14 @@
   // There is a typo on the SVD original from Keil
   // since it's based on the reference manual which also has a typo here              
   #define LPTMR_MASK SIM_SCGC5_LPTIMER_mask
-  #define BLINK_GPIO GPIOD
-  #define BLINK_PIN  4
+  #define PIN_ALIAS_LED PIN_SDA_LED
+
+  #include "pins_k64frdm_sda.h"
 #else
   #error "Neither IS_SDA_MCU or IS_MAIN_MCU set, AIEEEE"
 #endif
+
+#include "configuration/pins_kinetis.h"
 
 // If this function returns, crt0 will cause an NVIC system reset
 int main(void) {
@@ -99,26 +102,41 @@ int main(void) {
 
 #else // !IS_MAIN_MCU
 
+  // Setup sane configuration for pins that are related to the K64 control in
+  // any way.
+
+  // These should be all safe, but the board design does take care of them by
+  // providing somewhat safe defaults.
+  // Pin_configure(PIN_nSDA_SWD_EN, PINMUX_OUTPUT_HIGH, PINMUX_FLAG_NONE);
+  // Pin_configure(PIN_nSDA_SWD_OE, PINMUX_OUTPUT_HIGH, PINMUX_FLAG_NONE);
+  // Pin_configure(PIN_nSDA_RST_TGTMCU, PINMUX_OUTPUT_HIGH, PINMUX_FLAG_NONE);
+
+  // For some reason this needs to be driven high for the K64 to be powered
+  // though.
+  Pin_configure(PIN_POWER_EN, PINMUX_OUTPUT_HIGH, PINMUX_FLAG_NONE);
+
   // For the "SDA MCU" we only have one LED connected pin that we can control
-
-  // Select direction of the relevant GPIO pins as output
-  BLINK_GPIO->PDDR |= (1 << BLINK_PIN);
-  // Drive all low (set bits which are selected by the given mask)
-  BLINK_GPIO->PCOR = (1 << BLINK_PIN);
-
-  // Select GPIO function in the pinmuxes for all LED pins
-  PORTD->PCR[BLINK_PIN] = PORT_PCR_MUX(1);
+  // Set it up and drive to low
+  Pin_configure(PIN_SDA_LED, PINMUX_OUTPUT_LOW, PINMUX_FLAG_NONE);
 
 #endif // IS_SDA_MCU
 
   while (1) { 
     for (uint32_t u = 0; u < 1000000; u++) {
-      // dummy read to spend time and not let compiler optimize this away
-      (void)BLINK_GPIO->PDIR;
+      // don't let compiler optimize this away nor re-arrange it. this takes
+      // now significantly less time than reading from the GPIO peripheral, so
+      // the frequency is slightly faster. However, we try to avoid binding our
+      // code to specific peripheral instance since it might not be always
+      // powered on.
+      asm volatile ("nop");
     }
 
     // Flip a single output bit (just a write)
+#if defined(IS_MAIN_MCU)
     BLINK_GPIO->PTOR = (1 << BLINK_PIN);
+#else
+    Pin_toggleOutput(PIN_ALIAS_LED);
+#endif
   }
 
   // never reached

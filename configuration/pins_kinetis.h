@@ -41,6 +41,9 @@ typedef uint8_t Pin;
 #define PINMUX_OUTPUT_LOW  ((1 << 3)+1)
 #define PINMUX_OUTPUT_HIGH ((2 << 3)+1)
 
+// Pin flags, modifying the operation somehow
+#define PINMUX_FLAG_NONE     (0)
+
 // Flag to request pull-up
 // NOTE: Other flags will be added later, or re-designed perhaps
 #define PINMUX_FLAG_PULLUP   (1 << 0)
