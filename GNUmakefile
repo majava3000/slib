@@ -87,13 +87,13 @@ all: $(targets)
 
 $(targets): GNUmakefile
 
-# We can reuse these both, just. Both have cmopatible FTPROT sections and
+# We can reuse these both, just. Both have compatible FTPROT sections and
 # minimal vector area. init0.o must come before crt0.o. Otherwise linker will
 # fulfill the weak symbol from within crt0, since it's also implemented there,
 # and even if a strong symbol comes later in the linking order, it won't be
 # used. Back in the 1980s, the one-object-at-a-time -linking strategy must've
 # seemed like a good an efficient way of doing things. Sigh.
-KINETIS_CRT_OBJECTS := init0.o crt0.o flashconfig.o
+KINETIS_CRT_OBJECTS := init0.o crt0.o flashconfig.o pins_kinetis.o
 
 %.o: %.c
 	$(GENERIC_CC)
