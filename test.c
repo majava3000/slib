@@ -34,8 +34,9 @@
 
 #if defined(IS_MAIN_MCU)
   #define LPTMR_MASK SIM_SCGC5_LPTMR_mask
-  #define BLINK_GPIO GPIOB
-  #define BLINK_PIN  21
+
+  #include "pins_k64frdm_main.h"
+
 #elif defined(IS_SDA_MCU)
   // There is a typo on the SVD original from Keil
   // since it's based on the reference manual which also has a typo here              
@@ -73,6 +74,9 @@ int main(void) {
   // them.
 
   // also allow access to LPTMR (for later, not used in this program)
+  // TODO: PORTE does not exist on K20 (or rather, the peripheral might actually
+  //       exist there, but no pins are mapped out of the package). Should
+  //       probably know this using automatically generated information.
   SIM->SCGC5 |= SIM_SCGC5_PORTA_mask |
                 SIM_SCGC5_PORTB_mask |
                 SIM_SCGC5_PORTC_mask |
@@ -84,21 +88,13 @@ int main(void) {
 
   // For the "MAIN MCU", there are three pins connected to the RGB LED that we
   // can control.
+  Pin_configure(PIN_LED_RED, PINMUX_OUTPUT_HIGH, PINMUX_FLAG_NONE);
+  Pin_configure(PIN_LED_GREEN, PINMUX_OUTPUT_HIGH, PINMUX_FLAG_NONE);
+  Pin_configure(PIN_LED_BLUE, PINMUX_OUTPUT_LOW, PINMUX_FLAG_NONE);
 
-  // Select direction of the relevant GPIO pins as output
-  GPIOB->PDDR |= (1 << 21) | (1 << 22);
-  GPIOE->PDDR |= (1 << 26);
-  // Drive all high (set bits which are selected by given masks)
-  GPIOB->PSOR = (1 << 21) | (1 << 22);
-  GPIOE->PSOR = (1 << 26);
-  // Except for the one that we'll leave on
-  BLINK_GPIO->PCOR = (1 << BLINK_PIN);
-
-  // Select GPIO function in the pinmuxes for all LED pins
-  // shortcut: PORTB->GPCHR = (1 << 22) | (1 << 21) | (1 << PORT_PCR_MUX_offset)
-  PORTB->PCR[21] = PORT_PCR_MUX(1);
-  PORTB->PCR[22] = PORT_PCR_MUX(1);
-  PORTE->PCR[26] = PORT_PCR_MUX(1);
+  // Preconfigure also the two switches, although we won't be using them yet
+  Pin_configure(PIN_nSW2, PINMUX_INPUT, PINMUX_FLAG_PULLUP);
+  Pin_configure(PIN_nSW3, PINMUX_INPUT, PINMUX_FLAG_PULLUP);
 
 #else // !IS_MAIN_MCU
 
@@ -133,7 +129,26 @@ int main(void) {
 
     // Flip a single output bit (just a write)
 #if defined(IS_MAIN_MCU)
-    BLINK_GPIO->PTOR = (1 << BLINK_PIN);
+    // start with blue, but we can switch between three different leds to
+    // toggle (not always while previous would be toggled off)
+    static Pin toggleTarget = PIN_LED_BLUE;
+
+    Pin_toggleOutput(toggleTarget);
+
+    if (Pin_getInput(PIN_nSW2) == 0) {
+      // switch is pressed, advance to next led
+      switch (toggleTarget) {
+        case PIN_LED_RED:
+          toggleTarget = PIN_LED_GREEN;
+          break;
+        case PIN_LED_GREEN:
+          toggleTarget = PIN_LED_BLUE;
+          break;
+        case PIN_LED_BLUE:
+          toggleTarget = PIN_LED_RED;
+          break;
+      }
+    }
 #else
     Pin_toggleOutput(PIN_ALIAS_LED);
 #endif
