@@ -45,7 +45,7 @@
 #define PIN_SDA_LED           PIN_PTD4
 // Can be used to measure the voltage via a divider (ADC possible)
 #define PIN_SDA_USB_P5V_SENSE PIN_PTD5
-// Can be used to enable the MC2005 regulator to supply additional power
-#define PIN_POWER_EN          PIN_PTD6 
+// Can be used to enable the MC2005 switch to supply additional power
+#define PIN_POWER_EN          PIN_PTD6
 // Feedback from MC2005 to indicate fault (overcurrent or other situation)
 #define PIN_nVTRG_FAULT       PIN_PTD7
