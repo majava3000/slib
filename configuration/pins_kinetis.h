@@ -16,7 +16,7 @@ typedef uint8_t Pin;
 
 // Create a pin from instance and pin identifier
 #define MAKE_PIN(instance, pinIndex) \
-  ( ((instance) << 5) | pinIndex )
+  (Pin)( ((instance) << 5) | pinIndex )
 
 // Disable connection to digital circuits (analog connection might exist)
 #define PINMUX_DISABLED (0)
