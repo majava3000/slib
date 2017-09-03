@@ -8,15 +8,6 @@
 #include "regmap/port.h"
 #include "regmap/gpio.h"
 
-// Not generated currently by regmap generator
-#define SIM_SOPT1_OSC32KSEL(n) \
-  (((n) << SIM_SOPT1_OSC32KSEL_offset) & SIM_SOPT1_OSC32KSEL_mask)
-
-// The weird cast below is required to force gcc to issue a full width write
-// to the PCR register (even as declared volatile uint32_t). Voodoo.
-#define PORT_PCR_MUX(n) \
-  ((uint32_t)(((n) << PORT_PCR_MUX_offset) & PORT_PCR_MUX_mask))
-
 #include <stdint.h>
 
 /*
@@ -33,14 +24,14 @@
 */
 
 #if defined(IS_MAIN_MCU)
-  #define LPTMR_MASK SIM_SCGC5_LPTMR_mask
+  #define LPTMR_MASK SCGC5_LPTMR
 
   #include "pins_k64frdm_main.h"
 
 #elif defined(IS_SDA_MCU)
   // There is a typo on the SVD original from Keil
   // since it's based on the reference manual which also has a typo here              
-  #define LPTMR_MASK SIM_SCGC5_LPTIMER_mask
+  #define LPTMR_MASK SCGC5_LPTIMER
   #define PIN_ALIAS_LED PIN_SDA_LED
 
   #include "pins_k64frdm_sda.h"
@@ -53,7 +44,8 @@
 // If this function returns, crt0 will cause an NVIC system reset
 int main(void) {
   // 4 bit field. encoding somewhat fuzzy
-  uint32_t ramSize = (SIM->SOPT1 & SIM_SOPT1_RAMSIZE_mask) >> SIM_SOPT1_RAMSIZE_offset;
+  // uint32_t ramSize = (SIM->SOPT1 & SOPT1_RAMSIZE_mask) >> SOPT1_RAMSIZE_offset;
+  uint32_t ramSize = SOPT1_RAMSIZE_get(SIM->SOPT1);
   uint32_t deviceID = SIM->SDID;
   (void)ramSize;
   (void)deviceID;
@@ -61,7 +53,8 @@ int main(void) {
 #if defined(IS_MAIN_MCU)
   // select RTC 32k768 oscillator as the ERCLK32K for TSI and LPTMR
   // default is zero so this is safe. We don't use this yet
-  SIM->SOPT1 |= SIM_SOPT1_OSC32KSEL(2);
+  // TODO: use MASKEDSET32 here
+  SIM->SOPT1 |= SOPT1_OSC32KSEL(2);
 #else
   // SDA MCU does not have 32k768 ref-osc, so leave default
 #endif
@@ -77,11 +70,11 @@ int main(void) {
   // TODO: PORTE does not exist on K20 (or rather, the peripheral might actually
   //       exist there, but no pins are mapped out of the package). Should
   //       probably know this using automatically generated information.
-  SIM->SCGC5 |= SIM_SCGC5_PORTA_mask |
-                SIM_SCGC5_PORTB_mask |
-                SIM_SCGC5_PORTC_mask |
-                SIM_SCGC5_PORTD_mask |
-                SIM_SCGC5_PORTE_mask |
+  SIM->SCGC5 |= SCGC5_PORTA |
+                SCGC5_PORTB |
+                SCGC5_PORTC |
+                SCGC5_PORTD |
+                SCGC5_PORTE |
                 LPTMR_MASK;
 
 #if defined(IS_MAIN_MCU)

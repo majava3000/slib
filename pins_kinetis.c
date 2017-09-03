@@ -5,6 +5,7 @@
 #include "registermap/arm/kinetis/mk65f18/regmap/port.h"
 #include "registermap/arm/kinetis/mk65f18/regmap/gpio.h"
 
+// TODO: make generic ARLEN
 #define INSTANCE_COUNT (sizeof(gKinetisPORT)/sizeof(gKinetisPORT[0]))
 
 // Get the instance from pin
@@ -14,10 +15,6 @@
 
 // Helper to indicate whether pinmux requires GPIO control or not
 #define IS_PINMUX_GPIO(pinmux) (((pinmux) & 0b111) == 1)
-
-
-#define PORT_PCR_MUX(n) \
-  ((((n) << PORT_PCR_MUX_offset) & PORT_PCR_MUX_mask))
 
 void Pin_configure(Pin pin, uint8_t pinmux, uint8_t flags) {
 
@@ -79,21 +76,18 @@ void Pin_configure(Pin pin, uint8_t pinmux, uint8_t flags) {
   // be writing (since they're w1c) or which we'll provide below. Default
   // values for the fields will then be zero (for the ones that we provide)
   uint32_t pcr = gKinetisPORT[instance]->PCR[index] &
-                 ~(PORT_PCR_ISF_mask |
-                   PORT_PCR_MUX_mask |
-                   PORT_PCR_PE_mask  |
-                   PORT_PCR_PS_mask);
+                 ~(PCR_ISF | PCR_MUX_mask | PCR_PE | PCR_PS);
   // Fill up the PCR settings based on pinmux and flags. the macro has an
   // internal mask anyway, so the non alt selection bits are dropped here
-  pcr |= PORT_PCR_MUX(pinmux);
+  pcr |= PCR_MUX(pinmux);
 
   if (flags & (PINMUX_FLAG_PULLUP | PINMUX_FLAG_PULLDOWN)) {
     // either a pullup or pulldown will be used (enable "pull")
-    pcr |= PORT_PCR_PE_mask;
+    pcr |= PCR_PE;
     // if both are used, pullup will win since it's non-zero in PCR
     if (flags & PINMUX_FLAG_PULLUP) {
       // enable pullup instead of pulldown
-      pcr |= PORT_PCR_PS_mask;
+      pcr |= PCR_PS;
     }
   } else {
     // pullup and pulldown will be disabled on this pin

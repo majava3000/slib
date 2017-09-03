@@ -5,7 +5,7 @@
 
 // This is reserved (1) in the datasheet, but was called STNDBYEN by existing
 // code ( https://github.com/laswick/kinetis/blob/master/phase2_embedded_c/watchDog.c )
-#define WDOG_STCTRLH_STNDBYEN_mask (0x100U)
+#define STCTRLH_STNDBYEN_mask (0x100U)
 
 /**
  * First thing that must be done in a Kinetis at startup, is disabling the
@@ -20,9 +20,9 @@ void init0(void) {
   // Allow writing to watchdog write-once registers, select alternate clock
   // source (not LPO, so bus clock) for clock source. KSDKv1 does this, so
   // we as well.
-  WDOG->STCTRLH = WDOG_STCTRLH_STNDBYEN_mask |
-                  WDOG_STCTRLH_WAITEN_mask |
-                  WDOG_STCTRLH_STOPEN_mask |
-                  WDOG_STCTRLH_ALLOWUPDATE_mask |
-                  WDOG_STCTRLH_CLKSRC_mask;
+  WDOG->STCTRLH = STCTRLH_STNDBYEN_mask |
+                  STCTRLH_WAITEN |
+                  STCTRLH_STOPEN |
+                  STCTRLH_ALLOWUPDATE |
+                  STCTRLH_CLKSRC;
 }
