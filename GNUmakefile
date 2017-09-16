@@ -35,7 +35,7 @@ INCLUDES_SDA := $(call expandIncludes,kinetis/mk20d5)
 INCLUDES_MAIN := $(call expandIncludes,kinetis/mk64f12)
 
 # TODO: We should get most of these settings from the chip directory
-CPU_FLAGS := -mcpu=cortex-m3 -march=armv7-m -mthumb $(CPU_FLAGS)
+CPU_FLAGS := -march=armv7-m -mthumb $(CPU_FLAGS)
 # TODO: This will also work on the K20 (just, this is the maximum, since the 16K
 #       is split evently into SRAM_L and SRAM_U.
 STACK_TOP ?= 0x20002000
@@ -96,8 +96,7 @@ $(targets): GNUmakefile
 # seemed like a good an efficient way of doing things. Sigh.
 KINETIS_CRT_OBJECTS := init0.o crt0.o flashconfig.o pins_kinetis.o
 # Test calendar building for embedded
-#KINETIS_CRT_OBJECTS += util/calendar.o
-
+# KINETIS_CRT_OBJECTS += util/calendar.o
 # test_calendar: test_calendar.c util/calendar.c
 # 	cc -Wall $(filter %.c,$^) -o $@
 
