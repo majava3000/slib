@@ -113,7 +113,8 @@ void Calendar_breakdownDate(uint32_t daysSinceEpoch, CalendarDate* output);
  *
  * There is no check against invalid pointers, nor invalid structure fields.
  */
-uint32_t Calendar_combine(const Calendar* input);
+// UNIMPLEMENTED
+// uint32_t Calendar_combine(const Calendar* input);
 
 /**
  * Returns the number of day of the week given unixtime

@@ -95,8 +95,10 @@ $(targets): GNUmakefile
 # used. Back in the 1980s, the one-object-at-a-time -linking strategy must've
 # seemed like a good an efficient way of doing things. Sigh.
 KINETIS_CRT_OBJECTS := init0.o crt0.o flashconfig.o pins_kinetis.o
+# Test calendar building for embedded
+#KINETIS_CRT_OBJECTS += util/calendar.o
 
-# test_calendar: test_calendar.c calendar.c
+# test_calendar: test_calendar.c util/calendar.c
 # 	cc -Wall $(filter %.c,$^) -o $@
 
 %.o: %.c
@@ -105,7 +107,7 @@ KINETIS_CRT_OBJECTS := init0.o crt0.o flashconfig.o pins_kinetis.o
 crt0.o: INCLUDES=-I$(PATH_CMSIS)
 crt0.o: configuration/chip.h cmsis.h irqn.h
 
-calendar.o: calendar.h
+util/calendar.o: util/calendar.h
 
 k64frdm-main-test.o: INCLUDES=$(INCLUDES_MAIN)
 k64frdm-main-test.o: CFLAGS+=-DIS_MAIN_MCU=1
@@ -117,7 +119,7 @@ k64frdm-sda-test.o: CFLAGS+=-DIS_SDA_MCU=1
 k64frdm-sda-test.o: test.c
 	$(GENERIC_CC)
 
-k64frdm-main.elf: k64frdm-main-test.o calendar.o $(KINETIS_CRT_OBJECTS) $(PATH_LINKER_SCRIPT)
+k64frdm-main.elf: k64frdm-main-test.o $(KINETIS_CRT_OBJECTS) $(PATH_LINKER_SCRIPT)
 	$(GENERIC_LD)
 
 k64frdm-sda.elf: k64frdm-sda-test.o $(KINETIS_CRT_OBJECTS) $(PATH_LINKER_SCRIPT)
@@ -142,5 +144,5 @@ k64frdm-sda.elf: k64frdm-sda-test.o $(KINETIS_CRT_OBJECTS) $(PATH_LINKER_SCRIPT)
 ##
 
 clean:
-	$(RM) $(targets) $(wildcard *.o) $(wildcard *.map)
+	$(RM) $(targets) $(wildcard *.o) $(wildcard util/*.o) $(wildcard *.map)
 .PHONY: clean
