@@ -20,7 +20,7 @@
  * - All broken down fields are zero based
  *   - Year field is an offset against minimum allowed year, so might not be
  *     "zero based" depending on interpretation. Epoch compatible with unixtime
- *     epoch is used to simplify use.
+ *     epoch is used to simplify use
  * - Additional granularity available for partial conversions (when only time
  *   or date is of interest)
  * - Separate function to determine day of the week directly from unixtime
@@ -33,28 +33,26 @@
  * - No checks for invalid dates upon combination (an validator might be added
  *   later)
  * - No support for dates older than 1970 (see below on types)
- * - Maximum valid year is 2099. It is reduced by 2 (to 2104) due to
- *   simplification for leap year calculation (1970 is not a leap year) and
- *   further reduced to 2099 due to missing centennial leap year correction
- *   (which is otherwise not required, due to year 2000 cancelling out the
- *   centennial leap year). This means that values above 4102444799 are
- *   available as canary values or for other use, as long as they're never used
- *   with the Calendar_combine nor Calendar_combineDate.
+ * - Maximum valid year is 2099. It is reduced due to missing centennial leap
+ *   year correction (which is otherwise not required, due to year 2000
+ *   cancelling out the centennial leap year). This means that values above
+ *   4102444799 are available as canary values or for other use, as long as
+ *   they're never used with the Calendar_combine nor Calendar_combineDate
  * - No API to retrieve day of year (tm_yday). However, most cases using that
  *   field are using it to shortcut comparison across month/day fields, which
- *   are easy and light-weight to compare with the small structures here.
+ *   are easy and light-weight to compare with the small structures here
  *
  * Types:
  * - Linear time is represented by uint32_t, using "unix time" convention where
  *   the number represents seconds since "the UNIX epoch", without including
  *   any leapseconds. Unlike time_t, the uint32_t is enough to represent time
- *   up to the year 2106 (minus the caveat above for combining).
+ *   up to the year 2106 (minus the caveat above for combining)
  *
  * Tests:
  * - Each release undergoes "brute force" testing all day change points (with
  *   also testpoint-1 and testpoint+1 tests) as well as randomized run and all
  *   valid range ends. Tests compare results against a system provided gmtime
- *   (on a relatively modern Linux). Tests are not included in distribution.
+ *   (on a relatively modern Linux). Tests are not included in distribution
  */
 
 #include <stdint.h>
