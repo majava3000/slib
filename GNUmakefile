@@ -17,6 +17,7 @@ MAKEFLAGS += -rR
 testbinarylist := k64frdm-main k64frdm-sda
 # prefer srec instead of ihex, since JLink can't handle ihex suffix and functionality is same
 targets := $(foreach basename,$(testbinarylist),$(basename).elf $(basename).bin $(basename).srec $(basename).lst)
+#targets += test_calendar
 
 # TODO: For some reason ?= doesn't work here
 CC := arm-none-eabi-gcc
@@ -34,7 +35,7 @@ INCLUDES_SDA := $(call expandIncludes,kinetis/mk20d5)
 INCLUDES_MAIN := $(call expandIncludes,kinetis/mk64f12)
 
 # TODO: We should get most of these settings from the chip directory
-CPU_FLAGS := -mcpu=cortex-m3 -march=armv7-m -mthumb $(CPU_FLAGS)
+CPU_FLAGS := -march=armv7-m -mthumb $(CPU_FLAGS)
 # TODO: This will also work on the K20 (just, this is the maximum, since the 16K
 #       is split evently into SRAM_L and SRAM_U.
 STACK_TOP ?= 0x20002000
@@ -94,12 +95,18 @@ $(targets): GNUmakefile
 # used. Back in the 1980s, the one-object-at-a-time -linking strategy must've
 # seemed like a good an efficient way of doing things. Sigh.
 KINETIS_CRT_OBJECTS := init0.o crt0.o flashconfig.o pins_kinetis.o
+# Test calendar building for embedded
+# KINETIS_CRT_OBJECTS += util/calendar.o
+# test_calendar: test_calendar.c util/calendar.c
+# 	cc -Wall $(filter %.c,$^) -o $@
 
 %.o: %.c
 	$(GENERIC_CC)
 
 crt0.o: INCLUDES=-I$(PATH_CMSIS)
 crt0.o: configuration/chip.h cmsis.h irqn.h
+
+util/calendar.o: util/calendar.h
 
 k64frdm-main-test.o: INCLUDES=$(INCLUDES_MAIN)
 k64frdm-main-test.o: CFLAGS+=-DIS_MAIN_MCU=1
@@ -136,5 +143,5 @@ k64frdm-sda.elf: k64frdm-sda-test.o $(KINETIS_CRT_OBJECTS) $(PATH_LINKER_SCRIPT)
 ##
 
 clean:
-	$(RM) $(targets) $(wildcard *.o) $(wildcard *.map)
+	$(RM) $(targets) $(wildcard *.o) $(wildcard util/*.o) $(wildcard *.map)
 .PHONY: clean

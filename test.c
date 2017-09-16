@@ -8,6 +8,8 @@
 #include "regmap/port.h"
 #include "regmap/gpio.h"
 
+#include "util/calendar.h"
+
 #include <stdint.h>
 
 /*
@@ -41,6 +43,8 @@
 
 #include "configuration/pins_kinetis.h"
 
+volatile uint32_t gDummy;
+
 // If this function returns, crt0 will cause an NVIC system reset
 int main(void) {
   // 4 bit field. encoding somewhat fuzzy
@@ -49,6 +53,16 @@ int main(void) {
   uint32_t deviceID = SIM->SDID;
   (void)ramSize;
   (void)deviceID;
+
+  volatile uint32_t now = 86400;
+
+  Calendar nowDecomposed;
+  Calendar_decompose(now, &nowDecomposed);
+
+  uint32_t recomposed = Calendar_compose(&nowDecomposed);
+  uint8_t weekday = Calendar_getDayOfWeek(now);
+
+  gDummy = recomposed + weekday;
 
 #if defined(IS_MAIN_MCU)
   // select RTC 32k768 oscillator as the ERCLK32K for TSI and LPTMR
