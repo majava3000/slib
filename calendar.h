@@ -106,7 +106,7 @@ uint32_t Calendar_combine(const Calendar* input);
  *
  * 0: Monday .. 6: Sunday
  */
-uint8_t Calendar_getDayOfWeek(uint32_t secondSinceEpoch);
+uint8_t Calendar_getDayOfWeek(uint32_t secondsSinceEpoch);
 
 // Convenience defines for users of Calendar_getDayOfWeek
 
