@@ -17,7 +17,7 @@ MAKEFLAGS += -rR
 testbinarylist := k64frdm-main k64frdm-sda
 # prefer srec instead of ihex, since JLink can't handle ihex suffix and functionality is same
 targets := $(foreach basename,$(testbinarylist),$(basename).elf $(basename).bin $(basename).srec $(basename).lst)
-targets += test_calendar
+#targets += test_calendar
 
 # TODO: For some reason ?= doesn't work here
 CC := arm-none-eabi-gcc
@@ -96,8 +96,8 @@ $(targets): GNUmakefile
 # seemed like a good an efficient way of doing things. Sigh.
 KINETIS_CRT_OBJECTS := init0.o crt0.o flashconfig.o pins_kinetis.o
 
-test_calendar: test_calendar.c calendar.c
-	cc -Wall $^ -o $@
+# test_calendar: test_calendar.c calendar.c
+# 	cc -Wall $(filter %.c,$^) -o $@
 
 %.o: %.c
 	$(GENERIC_CC)

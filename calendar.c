@@ -1,8 +1,9 @@
 /**
- * Modern Gregorian calendar based breakdown and combination support to replace
- * C stdlib functions gmtime, localtime, mktime
+ * Please see calendar.h for background and usage.
  *
- * Copyright 2017 Aleksandr Koltsoff (czr@iki.fi)
+ * Copyright 2017 Aleksandr Koltsoff (czr@iki.fi).
+ *
+ * Canonical "project" URL: https://github.com/majava3000/slib/tree/master/util
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -44,10 +45,6 @@ void Calendar_breakdownTime(uint32_t secondsSinceMidnight, CalendarTime* output)
 }
 
 // Days per month (without including leap year extra day in February)
-// Deltaspace = 4, so we could get away with a 2 bits per month encoding
-//   TODO: Test the 2-bits per month encoding (will increase code size)
-//         most likely to get to the correct value, but savings in this
-//         table would be 12 bytes -> 3 bytes (9 bytes saved)
 static const uint8_t sDaysPerMonth[12] = {
   31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
 };
@@ -57,63 +54,103 @@ static const uint8_t sDaysPerMonth[12] = {
 // Days in a leap year
 #define DAYS_PER_LEAP_YEAR (DAYS_PER_COMMON_YEAR + 1)
 // Days in a four year cycle starting with a leap year
-#define DAYS_PER_LEAP_CYCLE (DAYS_PER_COMMON_YEAR * 3 + DAYS_PER_LEAP_YEAR)
+#define DAYS_PER_QUAD_CYCLE (DAYS_PER_LEAP_YEAR + DAYS_PER_COMMON_YEAR*3)
 
-// No leap day in year 2100 (unixtime point at which the leap
-// year would be added)
-#define NO_LEAP_CUTOFF_2100 (((2100 - 1970) + (31+29)) * CALENDAR_SECONDS_PER_DAY)
+/**
+ * Calculate the year offset, month offset and day offset against a start of
+ * "quad". A quad is a time period that starts with the year that includes the
+ * leap second, and continues for 4 years (ends just before the start of the
+ * next year that contains a leap second).
+ *
+ * Within the quad, there is just one cutoff point (where the leap day is),
+ * so we get away by a single comparison and post-adjustment if we hit exactly
+ * the leap day)
+ *
+ * Once the leap day adjustment is done, we can have rest of the logic treat
+ * each year as common (without leap days) simplifying the rest of the logic.
+ *
+ * The mechanism to pinpoint the month and day in month is currently linear
+ * reduction which is O(n). This means that runtime will depend on the given
+ * input which is not desireable. Perhaps this will be changed later if this
+ * does not bloat generated constants/code too much.
+ */
+static void breakdownInQuad(uint32_t daysSinceQuadStart, CalendarDate* output) {
 
-void Calendar_breakdownDate(uint32_t daysSinceEpoch, CalendarDate* output) {
-  // range of daysSinceEpoch: 0-49710 (2**32 / 86400)
+  // Will be set to one if we exactly hit the leap day within the quad. This
+  // be added to the day index always at the end
+  uint8_t leapDayOffset = 0;
 
-  // Rules:
-  //   Year divisible by 4 = leap year
-  //     Except for years divisible by 100
-  //       Except for years divisible by 400 (2000 is one such year)
-  // Our range is 1970 - 2106, so we need to deal with all corner cases
-  //  2000 = include adjustment
-  //  2100 = do not include adjustment
+  // Check whether we're in the post leap day section of the quad. If so, check
+  // whether we're exactly at leap day as well (additional fixup needed)
+  if (daysSinceQuadStart >= 31+28) {
+    // At exactly leap day or after it
 
-  // If we're beyond 2100, then decrement the number of daysSinceEpoch by one
-  // to offset the missing leapyear
-  // After this we can just use the /4 rule
-  if (daysSinceEpoch >= NO_LEAP_CUTOFF_2100) {
-    // since one leap day will be added anyway, shift this down
-    daysSinceEpoch -= 1;
+    if (daysSinceQuadStart == 31+28) {
+      // exactly at leap day. mark for post-compensation
+      leapDayOffset = 1;
+    }
+    // in all cases, we shift the view into the quad by one day so that we get
+    // away by using non-leap-second days-per-month table
+    daysSinceQuadStart -= 1;
   }
 
-  // range for years: 0-137
-  // range for quadYears = 0-34
-  // range for remYears = 0-3
-  uint32_t quadYears = daysSinceEpoch / DAYS_PER_LEAP_CYCLE;
-  uint32_t remYears = (daysSinceEpoch % DAYS_PER_LEAP_CYCLE) / DAYS_PER_COMMON_YEAR;
+  // After this point we can assume each year is a common one.
 
-  // days since new year
-  uint32_t remDays = daysSinceEpoch - 
-                     (quadYears * DAYS_PER_LEAP_CYCLE +
-                      remYears * DAYS_PER_COMMON_YEAR);
+  // Split into year and offset within year
+  uint8_t yearInQuad = daysSinceQuadStart / DAYS_PER_COMMON_YEAR;
+  // Initialized to the number of day within the year, but will be reduced
+  // progressive to contain the number of day in month at the end
+  uint16_t remDays = daysSinceQuadStart % DAYS_PER_COMMON_YEAR;
 
-  // would be nice to find an O(1) for this
-  uint8_t isLeap = (remYears == 0);
+  // TODO: would be nice to find an O(1) for this. Now must use linear reduction
+  //       which is O(n) and execution time will depend on parameters
   uint8_t monthIdx = 0;
-  while (monthIdx < 11) {
-    uint8_t daysInMonth = sDaysPerMonth[monthIdx];
-    if (monthIdx == 1 && isLeap) {
-      daysInMonth += 1;
-    }
-    if (remDays < daysInMonth) {
-      break;
-    }
-    remDays -= daysInMonth;
+
+  // locate the correct month while reducing the remainder of days (remainder
+  // is the day of month)
+  while (monthIdx < 11 &&
+         remDays >= sDaysPerMonth[monthIdx]) {
+
+    remDays -= sDaysPerMonth[monthIdx];
     monthIdx += 1;
   }
 
-  output->year = quadYears * 4 + remYears;
-  output->month = monthIdx;
-  output->day = remDays;
+  // Output data, assuming that caller will do required fixup for the year based
+  // on shift-compensation
+  output->year = yearInQuad; // 0-3
+  output->month = monthIdx; // 0-11
+  output->day = remDays + leapDayOffset; // 0-30
+}
+
+void Calendar_breakdownDate(uint32_t daysSinceEpoch, CalendarDate* output) {
+  // range of daysSinceEpoch: 0-47481 (2**32 / 86400 = 49710, however, since we
+  // don't handle centennial cycles (nor quad-centennials), the maximum valid
+  // day is the last one of year 2099).
+
+  // Our epoch (1970) isn't a leap year. We need to shift our view by exactly
+  // two years to either side to get to the quad, so do that now before
+  // isolating quad start and offset.
+
+  uint32_t shiftedDaysSinceQuadEpoch = DAYS_PER_COMMON_YEAR +
+                                       DAYS_PER_LEAP_YEAR +
+                                       daysSinceEpoch;
+
+  // isolate quad and offset within the quad
+  uint32_t quadIndex = shiftedDaysSinceQuadEpoch / DAYS_PER_QUAD_CYCLE;
+  uint32_t daysSinceQuadStart = shiftedDaysSinceQuadEpoch % DAYS_PER_QUAD_CYCLE;
+
+  // run the quad part into storage
+  breakdownInQuad(daysSinceQuadStart, output);
+
+  // post-compensate the shift (2) and also adjust for the offset within the
+  // origin space (4*quadIndex). This will never underflow. This is sligtly icky
+  // since we now rewrite output, but from the caller's standpoint, it is infact
+  // still only output (ie, we never read any data which user might have left in
+  // output before calling this function)
+  output->year += quadIndex * 4 - 2;
 }
 
 uint8_t Calendar_getDayOfWeek(uint32_t secondsSinceEpoch) {
   // Unix epoch was a Thursday
-  return (4 + (secondsSinceEpoch / CALENDAR_SECONDS_PER_DAY)) % 7;
+  return (3 + (secondsSinceEpoch / CALENDAR_SECONDS_PER_DAY)) % 7;
 }
