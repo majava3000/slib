@@ -99,7 +99,7 @@ static void breakdownInQuad(uint32_t daysSinceQuadStart, CalendarDate* output) {
   // Split into year and offset within year
   uint8_t yearInQuad = daysSinceQuadStart / DAYS_PER_COMMON_YEAR;
   // Initialized to the number of day within the year, but will be reduced
-  // progressive to contain the number of day in month at the end
+  // progressively to contain the number of day in month at the end
   uint16_t remDays = daysSinceQuadStart % DAYS_PER_COMMON_YEAR;
 
   // TODO: would be nice to find an O(1) for this. Now must use linear reduction
@@ -130,7 +130,6 @@ void Calendar_breakdownDate(uint32_t daysSinceEpoch, CalendarDate* output) {
   // Our epoch (1970) isn't a leap year. We need to shift our view by exactly
   // two years to either side to get to the quad, so do that now before
   // isolating quad start and offset.
-
   uint32_t shiftedDaysSinceQuadEpoch = DAYS_PER_COMMON_YEAR +
                                        DAYS_PER_LEAP_YEAR +
                                        daysSinceEpoch;
@@ -146,7 +145,7 @@ void Calendar_breakdownDate(uint32_t daysSinceEpoch, CalendarDate* output) {
   // origin space (4*quadIndex). This will never underflow. This is sligtly icky
   // since we now rewrite output, but from the caller's standpoint, it is infact
   // still only output (ie, we never read any data which user might have left in
-  // output before calling this function)
+  // 'output' before calling this function)
   output->year += quadIndex * 4 - 2;
 }
 
