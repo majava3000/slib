@@ -28,15 +28,56 @@
 
 #include "calendar.h"
 
-void Calendar_breakdown(uint32_t secondsSinceEpoch, Calendar* output) {
+#ifdef CALENDAR_GET_NOW
+// Hopefully the user actually implements this interface, but no easy way of
+// making sure unless closer coupling is forced.
+uint32_t CALENDAR_GET_NOW(void);
+#endif
 
-  Calendar_breakdownDate(secondsSinceEpoch / CALENDAR_SECONDS_PER_DAY,
+// Depending on internal callpoint, we might want the current time in different
+// representations. No-op if CALENDER_GET_NOW is not defined. This is slightly
+// yucky but still relatively straight-forward.
+#define _CALENDAR_FULL (0) // Return the unixtime as is
+#define _CALENDAR_TIME (1) // Return seconds since midnight today
+#define _CALENDAR_DATE (2) // Return days since epoch today
+
+// Instead of littering all call points with the check, implement it here.
+// If system time support is not required, this evaluates to transparent no-op
+// and the compiler should optimize all call-points away.
+static uint32_t optionalSystemTimeSupport(uint32_t v, uint8_t filter) {
+#ifdef CALENDAR_GET_NOW
+  if (v == CALENDAR_NOW) {
+    v = CALENDAR_GET_NOW();
+    // Since the different functions have different scales for the parameters,
+    // depending on what is being called with CALENDAR_NOW, we need to do
+    // additional pre-processing here. It's slightly yucky.
+    if (filter == _CALENDAR_TIME) {
+      return v % CALENDAR_SECONDS_PER_DAY;
+    } else if (filter == _CALENDAR_DATE) {
+      return v / CALENDAR_SECONDS_PER_DAY;
+    }
+    // leave the retrieved unixtime as is, will be returned below
+  }
+#endif
+  return v;
+}
+
+void Calendar_decompose(uint32_t secondsSinceEpoch, Calendar* output) {
+
+  secondsSinceEpoch = optionalSystemTimeSupport(secondsSinceEpoch,
+                                                _CALENDAR_FULL);
+
+  Calendar_decomposeDate(secondsSinceEpoch / CALENDAR_SECONDS_PER_DAY,
                          &output->date);
-  Calendar_breakdownTime(secondsSinceEpoch % CALENDAR_SECONDS_PER_DAY,
+  Calendar_decomposeTime(secondsSinceEpoch % CALENDAR_SECONDS_PER_DAY,
                          &output->time);
 }
 
-void Calendar_breakdownTime(uint32_t secondsSinceMidnight, CalendarTime* output) {
+void Calendar_decomposeTime(uint32_t secondsSinceMidnight, CalendarTime* output) {
+
+  secondsSinceMidnight = optionalSystemTimeSupport(secondsSinceMidnight,
+                                                   _CALENDAR_TIME);
+
   output->second = secondsSinceMidnight % 60;
   secondsSinceMidnight /= 60;
   output->minute = secondsSinceMidnight % 60;
@@ -74,7 +115,8 @@ static const uint8_t sDaysPerMonth[12] = {
  * input which is not desireable. Perhaps this will be changed later if this
  * does not bloat generated constants/code too much.
  */
-static void breakdownInQuad(uint32_t daysSinceQuadStart, CalendarDate* output) {
+static void decomposeInQuad(uint32_t daysSinceQuadStart,
+                                   CalendarDate* output) {
 
   // Will be set to one if we exactly hit the leap day within the quad. This
   // be added to the day index always at the end
@@ -122,10 +164,13 @@ static void breakdownInQuad(uint32_t daysSinceQuadStart, CalendarDate* output) {
   output->day = remDays + leapDayOffset; // 0-30
 }
 
-void Calendar_breakdownDate(uint32_t daysSinceEpoch, CalendarDate* output) {
+void Calendar_decomposeDate(uint32_t daysSinceEpoch, CalendarDate* output) {
   // range of daysSinceEpoch: 0-47481 (2**32 / 86400 = 49710, however, since we
   // don't handle centennial cycles (nor quad-centennials), the maximum valid
-  // day is the last one of year 2099).
+  // day is the last one of year 2099). The absolute maximum is used as a
+  // marker to retrieve current system time
+
+  daysSinceEpoch = optionalSystemTimeSupport(daysSinceEpoch, _CALENDAR_DATE);
 
   // Our epoch (1970) isn't a leap year. We need to shift our view by exactly
   // two years to either side to get to the quad, so do that now before
@@ -139,7 +184,7 @@ void Calendar_breakdownDate(uint32_t daysSinceEpoch, CalendarDate* output) {
   uint32_t daysSinceQuadStart = shiftedDaysSinceQuadEpoch % DAYS_PER_QUAD_CYCLE;
 
   // run the quad part into storage
-  breakdownInQuad(daysSinceQuadStart, output);
+  decomposeInQuad(daysSinceQuadStart, output);
 
   // post-compensate the shift (2) and also adjust for the offset within the
   // origin space (4*quadIndex). This will never underflow. This is sligtly icky
@@ -152,4 +197,38 @@ void Calendar_breakdownDate(uint32_t daysSinceEpoch, CalendarDate* output) {
 uint8_t Calendar_getDayOfWeek(uint32_t secondsSinceEpoch) {
   // Unix epoch was a Thursday
   return (3 + (secondsSinceEpoch / CALENDAR_SECONDS_PER_DAY)) % 7;
+}
+
+uint32_t Calendar_compose(const Calendar* input) {
+  // calculate number of full leap years between epoch and year but not
+  // including the given year
+  uint8_t leapCount = (input->date.year + 1) / 4;
+  // number of non-leap years in the same period is everything rest
+  uint8_t commonCount = input->date.year - leapCount;
+  // number of days leading to the start of the given year
+  uint32_t daysBeforeYear = leapCount * DAYS_PER_LEAP_YEAR +
+                            commonCount * DAYS_PER_COMMON_YEAR;
+
+  // this will contain 1 if we pass leap day within the given year
+  uint32_t leapAdjustment = 0;
+  if (input->date.year % 4 == 2) {
+    // only adjust if we've crossed leap day
+    if (input->date.month >= 2) {
+      leapAdjustment = 1;
+    }
+  }
+
+  // calculate number of days up to the month (monthIndex==0 => 0 days before)
+  uint32_t daysBeforeMonth = 0;
+  for (unsigned u = 0; u < input->date.month; u++) {
+    daysBeforeMonth += sDaysPerMonth[u];
+  }
+
+  uint32_t resultInDays = daysBeforeYear + daysBeforeMonth + leapAdjustment +
+                          input->date.day;
+  uint32_t secondOffset = 3600 * input->time.hour +
+                          60 * input->time.minute +
+                          input->time.second;
+
+  return resultInDays * CALENDAR_SECONDS_PER_DAY + secondOffset;
 }
