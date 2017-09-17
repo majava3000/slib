@@ -34,12 +34,12 @@
  * - No timezone support (implied or explicit) (no surprises either)
  * - No "normalization" of dates in Calendar_compose (unlike some mktime
  *   implementations)
- * - No checks for invalid dates upon composition (an validator might be added
+ * - No checks for invalid dates upon composition (a validator might be added
  *   later)
  * - No support for dates older than 1970 (see below on types)
  * - Maximum valid year is 2099. It is reduced due to missing centennial leap
  *   year correction (which is otherwise not required, due to year 2000
- *   cancelling out the centennial leap year). This means that values above
+ *   canceling out the centennial leap year). This means that values above
  *   4102444799 are available as canary values or for other use, as long as
  *   they're never used with the Calendar_decompose nor Calendar_decomposeDate
  * - No API to retrieve day of year (tm_yday). However, most cases using that
@@ -49,7 +49,7 @@
  * Types:
  * - Linear time is represented by uint32_t, using "unix time" convention where
  *   the number represents seconds since "the UNIX epoch", without including
- *   any leapseconds. Unlike time_t, the uint32_t is enough to represent time
+ *   any leap seconds. Unlike time_t, the uint32_t is enough to represent time
  *   up to the year 2106 (minus the caveat above for combining)
  *
  * Tests:
@@ -72,7 +72,7 @@
  *
  *   uint32_t CALENDAR_GET_NOW(void)
  *
- * When defined, an additional define named CALENDAR_NOW becomes avialable to
+ * When defined, an additional define named CALENDAR_NOW becomes available to
  * the caller of the Calendar_decompose* and Calendar_getDayOfWeek functions.
  * When passed instead of the unixtime parameter (first), the functions will
  * first retrieve the current time using CALENDAR_GET_NOW and then decompose the
@@ -105,7 +105,7 @@ typedef struct CalendarDate {
 } CalendarDate;
 
 /**
- * Decomposed time represetation
+ * Decomposed time representation
  */
 typedef struct CalendarTime {
   uint8_t hour;   // 0-23
