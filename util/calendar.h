@@ -101,7 +101,7 @@
 typedef struct CalendarDate {
   uint8_t year;  // (1970 +) 0-255
   uint8_t month; // 0-11
-  uint8_t day;   // 0-31
+  uint8_t day;   // 0-30
 } CalendarDate;
 
 /**
