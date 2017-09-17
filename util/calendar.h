@@ -29,6 +29,7 @@
  * - All calculations are done in unsigned space (making analysis easier)
  *
  * Limitations:
+ * - Not possible to represent dates before the year 1970
  * - No leap second support (assumes de facto standard "unix time" convention)
  * - No timezone support (implied or explicit) (no surprises either)
  * - No "normalization" of dates in Calendar_compose (unlike some mktime
