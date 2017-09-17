@@ -220,7 +220,7 @@ uint32_t Calendar_compose(const Calendar* input) {
 
   // calculate number of days up to the month (monthIndex==0 => 0 days before)
   uint32_t daysBeforeMonth = 0;
-  for (unsigned u = 0; u < input->date.month; u++) {
+  for (uint8_t u = 0; u < input->date.month; u++) {
     daysBeforeMonth += sDaysPerMonth[u];
   }
 
