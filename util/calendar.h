@@ -34,7 +34,7 @@
  * - No timezone support (implied or explicit) (no surprises either)
  * - No "normalization" of dates in Calendar_compose (unlike some mktime
  *   implementations)
- * - No checks for invalid dates upon combination (an validator might be added
+ * - No checks for invalid dates upon composition (an validator might be added
  *   later)
  * - No support for dates older than 1970 (see below on types)
  * - Maximum valid year is 2099. It is reduced due to missing centennial leap
