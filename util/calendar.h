@@ -16,7 +16,7 @@
  * - Always re-entrant capable functions
  * - Portable. No dependencies on C library other than stdint.h (and C99)
  * - Optional dependency on user provided API to retrieve current unixtime
- *   (see CALENDAR_GET_NOW below).
+ *   (see CALENDAR_GET_NOW in calendar_config.h).
  * - Structures and ranges scaled to be suitable for resource constrained
  *   environments
  * - All decomposed fields are zero based
@@ -61,39 +61,7 @@
 
 #include <stdint.h>
 
-/**
- * USER CONFIGURATION
- */
-
-/**
- * Optional integration hook to return current unixtime of system. Must be
- * defined as a symbol that can be linked against using the following
- * prototype:
- *
- *   uint32_t CALENDAR_GET_NOW(void)
- *
- * When defined, an additional define named CALENDAR_NOW becomes available to
- * the caller of the Calendar_decompose* and Calendar_getDayOfWeek functions.
- * When passed instead of the unixtime parameter (first), the functions will
- * first retrieve the current time using CALENDAR_GET_NOW and then decompose the
- * resulting linear time.
- *
- * This is mainly useful, if you find your code littered with the following
- * pattern:
- *
- *   uint32_t now = GetYourGetUnixTimeU32();
- *   Calendar decomposed;
- *   Calendar_decompose(now, &decomposed);
- *
- * When the define is set, the code be re-written as follows:
- *
- *   Calendar decomposed;
- *   Calendar_decompose(CALENDAR_NOW, &decomposed);
- *
- * YMMV whether hiding this convenience in the code will result in global code
- * size reduction or expansion.
- */
-// #define CALENDAR_GET_NOW System_getUnixtime
+#include "calendar_config.h"
 
 /**
  * Decomposed date representation
@@ -125,31 +93,6 @@ typedef struct Calendar {
 } Calendar;
 
 /**
- * Store decomposed calendar representation of given unixtime.
- *
- * If CALENDAR_NOW is passed as the first parameter, will retrieve current
- * system unixtime (see note above about configuration).
- */
-void Calendar_decompose(uint32_t secondsSinceEpoch, Calendar* output);
-
-/**
- * Store decomposed time representation of given "number of seconds since
- * midnight"
- *
- * If CALENDAR_NOW is passed as the first parameter, will retrieve current
- * system unixtime (see note above about configuration).
- */
-void Calendar_decomposeTime(uint32_t secondsSinceMidnight, CalendarTime* output);
-
-/**
- * Store decomposed date representation of "date at given unixtime"
- *
- * If CALENDAR_NOW is passed as the first parameter, will retrieve current
- * system unixtime (see note above about configuration).
- */
-void Calendar_decomposeDate(uint32_t daysSinceEpoch, CalendarDate* output);
-
-/**
  * Given decomposed calendar representation, return unixtime.
  *
  * To get seconds since midnight, leave the date as zero in the input.
@@ -161,12 +104,49 @@ void Calendar_decomposeDate(uint32_t daysSinceEpoch, CalendarDate* output);
 uint32_t Calendar_compose(const Calendar* input);
 
 /**
+ * Store decomposed calendar representation of given unixtime.
+ */
+void Calendar_decompose(uint32_t secondsSinceEpoch, Calendar* output);
+
+/**
+ * Store decomposed time representation of given "number of seconds since
+ * midnight"
+ */
+void Calendar_decomposeTime(uint32_t secondsSinceMidnight, CalendarTime* output);
+
+/**
+ * Store decomposed date representation of "date at given unixtime"
+ */
+void Calendar_decomposeDate(uint32_t daysSinceEpoch, CalendarDate* output);
+
+#ifdef CALENDAR_GET_NOW
+/**
+ * Store decomposed calendar representation of now.
+ */
+void Calendar_decomposeNow(Calendar* output);
+
+/**
+ * Store decomposed time representation of now.
+ */
+void Calendar_decomposeTimeNow(CalendarTime* output);
+
+/**
+ * Store decomposed date representation of now.
+ */
+void Calendar_decomposeDateNow(CalendarDate* output);
+
+/**
+ * Returns the number of day of the week of now
+ *
+ * 0: Monday .. 6: Sunday
+ */
+uint8_t Calendar_getDayOfWeekNow(void);
+#endif // CALENDAR_GET_NOW
+
+/**
  * Returns the number of day of the week given unixtime
  *
  * 0: Monday .. 6: Sunday
- *
- * If CALENDAR_NOW is passed as the parameter, will retrieve current system
- * unixtime (see note above about configuration).
  */
 uint8_t Calendar_getDayOfWeek(uint32_t secondsSinceEpoch);
 
@@ -183,9 +163,3 @@ uint8_t Calendar_getDayOfWeek(uint32_t secondsSinceEpoch);
 // Convenience define if dealing with partial compose. The name is slightly
 // misleading, since it does not convey lack of leap second support.
 #define CALENDAR_SECONDS_PER_DAY (86400)
-
-#ifdef CALENDAR_GET_NOW
-// the value is chosen as one that is invalid (beyond the valid range of years
-// that the functions support).
-#define CALENDAR_NOW (0xFFFFFFFFU)
-#endif
