@@ -28,4 +28,4 @@
  * YMMV whether hiding this convenience in the code will result in global code
  * size reduction or expansion.
  */
-#define CALENDAR_GET_NOW System_getUnixtime
+// #define CALENDAR_GET_NOW System_getUnixtime

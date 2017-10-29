@@ -48,7 +48,8 @@ PATH_LINKER_SCRIPT ?= simple.ld
 # sections should be dumped).
 DISSASSEMBLY_OPTIONS := --disassembler-options=reg-names-std -hDSw
 # You might want to use -Os later
-OPTIMIZATION_FLAGS := -Og -g -ggdb $(OPTIMIZATION_FLAGS)
+#OPTIMIZATION_FLAGS := -Og -g -ggdb $(OPTIMIZATION_FLAGS)
+OPTIMIZATION_FLAGS := -Os -g -ggdb $(OPTIMIZATION_FLAGS)
 WARNING_FLAGS := -Wall $(WARNING_FLAGS)
 
 ##
@@ -96,9 +97,9 @@ $(targets): GNUmakefile
 # seemed like a good an efficient way of doing things. Sigh.
 KINETIS_CRT_OBJECTS := init0.o crt0.o flashconfig.o pins_kinetis.o
 # Test calendar building for embedded
-# KINETIS_CRT_OBJECTS += util/calendar.o
-# test_calendar: test_calendar.c util/calendar.c
-# 	cc -Wall $(filter %.c,$^) -o $@
+KINETIS_CRT_OBJECTS += util/calendar.o
+test_calendar: test_calendar.c util/calendar.c
+	cc -Wall $(filter %.c,$^) -o $@
 
 %.o: %.c
 	$(GENERIC_CC)
