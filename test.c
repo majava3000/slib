@@ -7,6 +7,7 @@
 #include "regmap/sim.h"
 #include "regmap/port.h"
 #include "regmap/gpio.h"
+#include "regmap/uart.h"
 
 #include "util/calendar.h"
 
